@@ -4,6 +4,8 @@ import java.io.DataInputStream;
 import java.io.PrintStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.net.ServerSocket;
 
@@ -91,8 +93,10 @@ public class Server {
 	  private Socket clientSocket = null;
 	  private final clientThread[] threads;
 	  private int maxClientsCount;
-	  private long clientID=1134567890;
+	  private long clientID=0;
 	  private String chatRoom="1";
+	  private long chatRoomRef=1134567890;
+	  private HashMap<String, Long> roomList=new HashMap<String, Long>();
 
 	  public clientThread(Socket clientSocket, clientThread[] threads) {
 	    this.clientSocket = clientSocket;
@@ -118,19 +122,28 @@ public class Server {
 	    	  room=is.readLine().trim();
 	        os.println("CLIENT_NAME : ");
 	        name = is.readLine().trim();
-	        if (name.indexOf('@') == -1) {
-	          break;
-	        } else {
-	          os.println("The name should not contain '@' character.");
-	        }
+	        break;
+	       
+	      }
+	      
+	      if(null!=roomList && !roomList.isEmpty()){
+	    	  
+	    	  if(null!=roomList.get(room)){
+	    		  chatRoomRef=roomList.get(room);
+	    	  }else{
+	    		  roomList.put(room, chatRoomRef+1);
+	    	  }
+	    	  
+	      }else{
+	    	  roomList.put(room, chatRoomRef+1);
 	      }
 	      
 	      /* Welcome the new the client. */
-	      clientID=clientID+1;
+	      clientID=clientSocket.getPort();
 	      os.println("JOINED_CHATROOM : "+room);
   		  os.println("SERVER_IP : "+this.clientSocket.getInetAddress());
   		  os.println("PORT : "+this.clientSocket.getLocalPort());
-  		  os.println("ROOM_REF : " +this.clientSocket.getPort());
+  		  os.println("ROOM_REF : " +this.chatRoomRef);
   		  os.println("JOIN_ID : "+clientID);
   		  
 	      synchronized (this) {
@@ -147,8 +160,8 @@ public class Server {
 	        for (int i = 0; i < maxClientsCount; i++) {
 	        	
 	          if (threads[i] != null && threads[i] != this && threads[i].chatRoom.equalsIgnoreCase(this.chatRoom)) {
-	        	  System.out.println("ChatRoom on thread loop: "+threads[i].chatRoom);
-		        	System.out.println("ChatRoom on client: "+this.chatRoom);
+	        	/*  System.out.println("ChatRoom on thread loop: "+threads[i].chatRoom);
+		        	System.out.println("ChatRoom on client: "+this.chatRoom);*/
 	            threads[i].os.println(name
 	                + " has joined the chat room : "+room);
 	          }
@@ -162,8 +175,8 @@ public class Server {
 	          break;
 	        }
 	        /* If the message is private sent it to the given client. */
-	        if (line.startsWith("@")) {
-	          String[] words = line.split("\\s", 2);
+	        if (line.toLowerCase().startsWith("private_chat:")) {
+	          String[] words = line.split("private_chat:");
 	          if (words.length > 1 && words[1] != null) {
 	            words[1] = words[1].trim();
 	            if (!words[1].isEmpty()) {
@@ -191,8 +204,8 @@ public class Server {
 	            for (int i = 0; i < maxClientsCount; i++) {
 	            	
 	              if (threads[i] != null && threads[i].clientName != null && threads[i].chatRoom.equalsIgnoreCase(this.chatRoom)) {
-	            	  System.out.println("ChatRoom on thread loop: "+threads[i].chatRoom);
-			        	System.out.println("ChatRoom on client: "+this.chatRoom);
+	            	 /* System.out.println("ChatRoom on thread loop: "+threads[i].chatRoom);
+			        	System.out.println("ChatRoom on client: "+this.chatRoom);*/
 	                threads[i].os.println(name + " - > " + line);
 	              }
 	            }
